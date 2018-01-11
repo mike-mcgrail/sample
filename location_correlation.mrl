@@ -1,0 +1,213 @@
+#
+@kbversion('location_correlation','1.0.00',1000);
+#
+
+new location_correlation_start_timer : NNM_EVENT($EV)
+#
+# WHEN
+#   SNMP trap IF_DOWN, LINK_DOWN or RIVERBED_EVENT is received AND host is not at a corporate location
+#   NOTE: This will match mc_host for these events
+# OR
+#   SNMP trap NODE_DOWN is received AND host is not at a corporate location AND does not end with "r1" or "r2"
+# OR 
+#   SNMP trap AVAYA_SESSION_MGR or WIRELESS_EVENT is received AND TrapData2 is not for a device at a corporate location
+#   NOTE: AVAYA_SESSION_MGR traps are sent from central server so this must match device name in TrapData2
+#   NOTE: WIRELESS_EVENT also sent from central server; TrapData2 RegEx must match "AP '<device>"
+# THEN
+#   Modify the alert to be stateful. Change "do_ticket" to "NO" so that a ticket
+#   is not created immediately.  Start a timer to wait 5 minutes before cutting a ticket.
+#   NOTE: 2 timer expiration "pop" rules are necessary - 1 to close event if a match and 1 to close if not a match
+#
+  where [(
+	(
+	  NOT match_regex($EV.mc_host,'^2d.*','i')
+	  AND NOT match_regex($EV.mc_host,'^a(l|z).*','i')
+	  AND NOT match_regex($EV.mc_host,'^b[e,w].*','i')
+	  AND NOT match_regex($EV.mc_host,'^c(o|t).*','i')
+	  AND NOT match_regex($EV.mc_host,'^d(e,i).*','i')
+	  AND NOT match_regex($EV.mc_host,'^e[4,5,6,m].*','i')
+	  AND NOT match_regex($EV.mc_host,'^f1.*','i')
+	  AND NOT match_regex($EV.mc_host,'^g2.*','i')
+	  AND NOT match_regex($EV.mc_host,'^l3.*','i')
+	  AND NOT match_regex($EV.mc_host,'^n7.*','i')
+	  AND NOT match_regex($EV.mc_host,'^o[1,4].*','i')
+	  AND NOT match_regex($EV.mc_host,'^ra.*','i')
+	  AND NOT match_regex($EV.mc_host,'^t(6|a|x).*','i')
+	  AND NOT match_regex($EV.mc_host,'^w[2,3,9].*','i')
+      AND (
+		$EV.TrapData1 within ["IF_DOWN","LINK_DOWN","RIVERBED_EVENT"]
+		OR (
+		  $EV.TrapData1 == "NODE_DOWN"
+	      AND NOT match_regex($EV.mc_host,'r[1,2]$','i')
+		)
+      )
+	)
+	OR (
+	  $EV.TrapData1 == "AVAYA_SESSION_MGR"
+	  AND NOT match_regex($EV.TrapData2,'^2d.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^a(l|z).*','i')
+	  AND NOT match_regex($EV.TrapData2,'^b[e,w].*','i')
+	  AND NOT match_regex($EV.TrapData2,'^c(o|t).*','i')
+	  AND NOT match_regex($EV.TrapData2,'^d(e|i).*','i')
+	  AND NOT match_regex($EV.TrapData2,'^e[4,5,6,m].*','i')
+	  AND NOT match_regex($EV.TrapData2,'^f1.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^g2.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^l3.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^n7.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^o[1,4].*','i')
+	  AND NOT match_regex($EV.TrapData2,'^ra.*','i')
+	  AND NOT match_regex($EV.TrapData2,'^t(6|a|x).*','i')
+	  AND NOT match_regex($EV.TrapData2,'^w[2,3,9].*','i')
+	)
+	OR (
+	  $EV.TrapData1 == "WIRELESS_EVENT"
+	  AND NOT match_regex($EV.mc_host,"AP \'2d.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'a(l|z).*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'b[e,w].*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'c(o|t).*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'d(e|i).*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'e[4,5,6,m].*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'f1.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'g2.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'l3.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'n7.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'o[1,4].*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'ra.*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'t(6|a|x).*","i")
+	  AND NOT match_regex($EV.mc_host,"AP \'w[2,3,9].*","i")
+	)
+  )]
+  triggers {
+	$EV.stateful = YES;
+    $EV.do_ticket = NO;
+    set_timer($EV,300,'location_correlation_timer');
+	set_timer($EV,305,'location_close_timer');
+    ntadd($EV,"Timer initiated at " || time_stamp_to_str(time_stamp(),'%c'));
+  }
+END
+
+
+timer location_correlation_timer_pop: NNM_EVENT($EV)
+#
+# WHEN
+#   The correlation_timer set in rule above expires
+# AND
+#   The event is still open
+# AND
+#   No NODE_DOWN event was received for a router at the same location
+# THEN
+#   Open a ticket for the event
+# NOTE: Used "unless" because "using" stops execution of the rule if there is no match
+#
+  where [
+    $EV.stateful == YES
+    AND $EV.TrapData1 within ["AVAYA_SESSION_MGR","IF_DOWN","LINK_DOWN","NODE_DOWN","RIVERBED_EVENT","WIRELESS_EVENT"]
+    AND $EV.status != CLOSED
+    AND $EV.status != BLACKOUT
+  ]
+  unless { NNM_EVENT($ROUTER)
+    where [
+      $ROUTER.TrapData1 == "NODE_DOWN"
+      AND $ROUTER.status != CLOSED
+      AND $ROUTER.status != BLACKOUT
+	  AND match_regex($ROUTER.mc_host,'r[1,2]$','i')
+      AND (
+	    has_substring($EV.mc_host,substring($ROUTER.mc_host,0,strlen($ROUTER.mc_host)-2),[IGN_CASE])
+        OR has_substring($EV.TrapData2,substring($ROUTER.mc_host,0,strlen($ROUTER.mc_host)-2),[IGN_CASE])
+	  )
+	]
+  }
+
+  timer_info : == 'location_correlation_timer'
+  {
+    $EV.do_ticket = YES;
+	ntadd($EV,"Event released for incident creation due to timer expiration");
+  }
+END
+
+
+timer location_close_timer_pop: NNM_EVENT($EV)
+#
+# WHEN
+#   The close_timer set in rule above expires
+# AND
+#   The event is still open
+# AND
+#   A NODE_DOWN event was not received for a router at the same location
+#   NOTE: This would leave do_ticket as NO after first timer above expired
+# THEN
+#   Close the event without cutting a ticket
+#
+  where [
+    $EV.do_ticket == NO
+    AND $EV.stateful == YES
+    AND $EV.TrapData1 within ["AVAYA_SESSION_MGR","IF_DOWN","LINK_DOWN","NODE_DOWN","RIVERBED_EVENT","WIRELESS_EVENT"]
+    AND $EV.status != CLOSED
+    AND $EV.status != BLACKOUT
+  ]
+  timer_info : == 'location_close_timer'
+  {
+    $EV.status_update_request = CLOSED;
+	ntadd($EV,"Event closed due to timer expiration and correlating Router Down event from same office");
+  }
+END
+
+
+new location_correlation_router: NNM_EVENT($ROUTER)
+#
+# WHEN
+#   An Node Down event is received for a router
+# AND
+#   The location is not a corporate location
+# AND
+#   The location matches an open event listed above for the same location
+# THEN
+#   Close all of the other open events *without incident numbers* (i.e.: do not close events that already cut tickets)
+#   for the office with Trapdata1 of the following:
+#     "AVAYA_SESSION_MGR","IF_DOWN","LINK_DOWN","RIVERBED_EVENT" or "WIRELESS_EVENT"
+#     or "NODE_DOWN" but not device "r1" or "r2" (i.e.: do not close "NODE_DOWN" for the other router)
+#
+  where [
+    $ROUTER.TrapData1 == 'NODE_DOWN'
+    AND $ROUTER.status != CLOSED
+    AND $ROUTER.status != BLACKOUT
+    AND match_regex($ROUTER.mc_host,'r[1,2]$','i')
+    AND NOT match_regex($ROUTER.mc_host,'^2d.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^a(l|z).*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^b[e,w].*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^c(o|t).*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^d(e|i).*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^e[4,5,6,m].*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^f1.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^g2.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^l3.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^n7.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^o[1,4].*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^ra.*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^t(6|a|x).*','i')
+    AND NOT match_regex($ROUTER.mc_host,'^w[2,3,9].*','i')
+  ]
+  updates ALL NNM_EVENT($OFFICE)
+  where [
+    (
+      $OFFICE.TrapData1 within ["AVAYA_SESSION_MGR","IF_DOWN","LINK_DOWN","RIVERBED_EVENT","WIRELESS_EVENT"]
+      OR (
+		$OFFICE.TrapData1 == "NODE_DOWN"
+	    AND NOT match_regex($OFFICE.mc_host,'r[1,2]$','i')
+      )
+    )
+    AND $OFFICE.incident_id == ''
+	AND $OFFICE.status != CLOSED
+    AND $OFFICE.status != BLACKOUT
+	AND (
+      has_substring($OFFICE.mc_host,substring($ROUTER.mc_host,0,strlen($ROUTER.mc_host)-2),[IGN_CASE])
+      OR has_substring($OFFICE.TrapData2,substring($ROUTER.mc_host,0,strlen($ROUTER.mc_host)-2),[IGN_CASE])
+	)
+  ]
+  {
+    ntadd($OFFICE,"Event closed due to correlating Router Down event from same office");
+    $OFFICE.do_ticket = NO;
+    $OFFICE.status_update_request = CLOSED;
+    ntadd($ROUTER,"Closed " || $OFFICE.TrapData1 || " event from same office correlated to this event");
+  }
+END
