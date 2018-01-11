@@ -1,0 +1,27 @@
+{
+    "name": "mrl",
+    "displayName": "MRL",
+    "description": "Extension to support syntax highlighting in Master Rule Language (mrl) files",
+    "icon": "https://github.com/mike-mcgrail/vscode-mrl/blob/master/icon.jpg",
+    "version": "0.0.1",
+    "publisher": "mike-mcgrail",
+    "engines": {
+        "vscode": "^1.12.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "mrl",
+            "aliases": ["Master Rule Language","MRL", "mrl"],
+            "extensions": [".mrl"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "mrl",
+            "scopeName": "source.mrl",
+            "path": "./syntaxes/mrl.tmLanguage.json"
+        }]
+    }
+}

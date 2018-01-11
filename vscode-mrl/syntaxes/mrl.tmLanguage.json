@@ -1,0 +1,67 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "MRL",
+	"patterns": [
+		{"include": "#keywords"},
+		{"include": "#clauses-and-functions"},
+		{"include": "#operators"},	
+		{"include": "#strings-single"},
+		{"include": "#strings-double"},
+		{"include": "#variables"},
+		{"include": "#comments"}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.other.mrl",
+				"match": "\\b(abstract|ABSTRACT|action|ACTION|and|AND|collector|COLLECTOR|delete|DELETE|correlate|CORRELATE|drop_new|DROP_NEW|duplicate|DUPLICATE|else|ELSE|end|END|execute|EXECUTE|filter|FILTER|if|IF|index|INDEX|new|NEW|not|NOT|or|OR|propagate|PROPAGATE|refine|REFINE|regulate|REGULATE|then|THEN|threshold|THRESHOLD|timer|TIMER|timer_info|TIMER_INFO|triggers|TRIGGERS|updates|UPDATES|unless|UNLESS|using|USING|when|WHEN|where|WHERE)\\b"
+			}]
+		},
+		"clauses-and-functions": {
+			"patterns": [{
+				"name": "keyword.control.mrl",
+				"match": "\\b(abs|ABS|acos|ACOS|action_requestor|ACTION_REQUESTOR|action_return|ACTION_RETURN|add_to_list|ADD_TO_LIST|apply_match_entry|APPLY_MATCH_ENTRY|admin_execute|ADMIN_EXECUTE|asin|ASIN|atan2|ATAN2|between|BETWEEN|cellcontrol|CELLCONTROL|cellinfo|CELLINFO|char|CHAR|class_path|CLASS_PATH|code|CODE|concat|CONCAT|confirm_external|CONFIRM_EXTERNAL|contained_in|CONTAINED_IN|contains|CONTAINS|contains_one_of|S_ONE_OF|cos|COS|decr|DECR|equals|EQUALS|exp|EXP|find_match|FIND_MATCH|find_match_entry|FIND_MATCH_ENTRY|float|FLOAT|gcd|GCD|generate_event|GENERATE_EVENT|get_env|GET_ENV|get_external|GET_EXTERNAL|get_list_slotvalues|GET_LIST_SLOTVALUES|greater_or_equal|GREATER_OR_EQUAL|greater_than|GREATER_THAN|has_prefix|HAS_PREFIX|has_substring|HAS_SUBSTRING|has_suffix|HAS_SUFFIX|incr|INCR|int|INT|int_to_hex|INT_TO_HEX|inttostring|INTTOSTRING|ip_greater_or_equals|IP_GREATER_OR_EQUALS|ip_matched_by|IP_MATCHED_BY|ip_matches|IP_MATCHES|ip_smaller_or_equals|IP_SMALLER_OR_EQUALS|kbversion|KBVERSION|key_verify|KEY_VERIFY|key_version|KEY_VERSION|listappend|LISTAPPEND|listdelete|LISTDELETE|listdisjoint|LISTDISTJOINT|listgetelt|LISTGETELT|listintersect|LISTINTERSECT|listlen|LISTLEN|listmember|LISTMEMBER|listremdup|LISTREMDUP|listsubtract|LISTSUBTRACT|listunion|LISTUNION|listwalk|LISTWALK|log|LOG|log10|LOG10|mapslots|MAPSLOTS|match_regex|MATCH_REGEX|max|MAX|min|MIN|new_data|NEW_DATA|not_equals|NOT_EQUALS|ntadd|NTADD|ntcnt|NTCNT|ntget|NTGET|ntset|NTSET|opadd|OPADD|opcnt|OPCNT|opget|OPGET|opget_action|OPGET_ACTION|opget_args|OPGET_ARGS|opget_author|OPGET_AUTHOR|opget_time|OPGET_TIME|opqry|OPQRY|opset|OPSET|outside|OUTSIDE|perform|PERFORM|pointertostring|POINTERTOSTRING|pow|POW|prev|PREV|propagated_to|PROPAGATED_TO|random|RANDOM|real|REAL|realtostring|REALTOSTRING|relate|RELATE|rem_from_list|REM_FROM_LIST|remove_data|REMOVE_DATA|reset_default|RESET_DEFAULT|round|ROUND|send_to|SEND_TO|sent_to_ext|SEND_TO_EXT|set_list_slotvalues|SET_LIST_SLOTVALUES|set_timer|SET_TIMER|set_timer_at|SET_TIMER_AT|sign|SIGN|sin|SIN|smaller_than|SMALLER_THAN|smaller_or_equals|SMALLER_OR_EQUALS|smcomps|SMCOMPS|sprintf|SPRINTF|sqrt|SQRT|str_to_time_stamp|STR_TO_TIME_STAMP|strextract|STREXTRACT|string|STRING|stringtoint|STRINGTOINT|stringtopointer|STRINGTOPOINTER|stringtoreal|STRINGTOREAL|strip|STRIP|strlen|STRLEN|strmatch|STRMATCH|strnpart|STRNPART|strpart|STRPART|strtolist|STRTOLIST|subclass_of|SUBCLASS_OF|substring|SUBSTRING|superclass_of|SUPERCLASS_OF|tan|TAN|tf_active|TF_ACTIVE|tf_current_end|TF_CURRENT_END|tf_current_interval|TF_CURRENT_INTERVAL|tf_current_start|TF_CURRENT_START|tf_duraction|TF_DURATION|tf_next_end|TF_NEXT_END|tf_next_interval|TF_NEXT_INTERVAL|tf_next_start|TF_NEXT_START|tf_prev_end|TF_PREV_END|tf_prev_interval|TF_PREV_INTERVAL|tf_prev_start|TF_PREV_START|tf_udid_active|TF_UDID_ACTIVE|time_extract|TIME_EXTRACT|time_stamp|TIME_STAMP|time_stamp_to_cim|TIME_STAMP_TO_CIM|time_stamp_to_str|TIME_STAMP_TO_STR|tolowercase|TOLOWERCASE|touppercase|TOUPPERCASE|trunc|TRUNC|unrelate|UNRELATE|unset_cause|UNSET_CAUSE|within|WITHIN)\\b"
+			}]
+		},
+		"operators": {
+			"patterns": [{
+				"name": "keyword.other.unit.mrl",
+				"match": "\\b(ack|ACK|assigned|ASSIGNED|blackout|BLACKOUT|closed|CLOSED|critical|CRITICAL|harmless|HARMLESS|info|INFO|major|MAJOR|minor|MINOR|ok|OK|open|OPEN|unknown|UNKNOWN|warning|WARNING)\\b"
+			}]
+		},
+		"strings-single": {
+			"name": "string.quoted.single.mrl",
+			"begin": "'",
+			"end": "'",
+			"patterns": [{
+					"name": "constant.character.escape.mrl",
+					"match": "\\\\."
+			}]
+		},
+		"strings-double": {
+			"name": "string.quoted.double.mrl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [{
+					"name": "constant.character.escape.mrl",
+					"match": "\\\\."
+			}]
+		},
+		"variables": {
+			"patterns": [{
+					"name": "variable.name.mrl",
+					"match": "\\$[^ !@#\\$%^&\\*,()<>\\[\\]]*"
+			}]
+		},
+		"comments": {
+			"name": "comment.control.mrl",
+			"begin": "#",
+			"end": "\n",
+			"patterns": [{
+					"name": "comment.line.number-sign",
+					"match": "^[\\w0-9]+(\\.[\\w0-9-]+)*$"
+			}]
+		}
+	},
+	"scopeName": "source.mrl"
+}
