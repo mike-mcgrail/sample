@@ -1,0 +1,96 @@
+#
+@kbversion('datastore_path_correlation','1.0.00',1000);
+#
+
+new datastore_path_lookup : NNM_EVENT($EV)
+#
+# WHEN
+#   SNMP trap for VCenter "Datastore Path " is received
+# AND
+#   There is an existing Datastore Path event from same resource pool within past 180 seconds
+# THEN
+#   Close the alert without cutting a ticket
+# AND
+#   Update the existing alert to reflect multiple paths are down
+#
+  where [
+    $EV.mc_tool == "HPOV"
+	  AND $EV.TrapData1 == "VCenter"
+	  AND $EV.TrapData2 == "Datastore Usage"
+	  AND match_regex($EV.TrapData3,'.*Datastore Path$','i')
+  ]
+  updates NNM_EVENT($EXISTING)
+    where [
+	    $EXISTING.status != CLOSED
+	    AND $EV.date_reception <= ($EXISTING.date_reception + 180)
+	    AND $EXISTING.mc_tool == "HPOV"
+	    AND $EV.mc_host == $EXISTING.mc_host
+      AND $EV.TrapData1 == $EXISTING.TrapData1
+	    AND $EV.TrapData2 == $EXISTING.TrapData2
+	    AND match_regex($EXISTING.TrapData3,'.*Datastore Path$','i')
+	    AND $EV.TrapData4 == $EXISTING.TrapData4
+	  ]
+  {
+    $EV.do_ticket = NO;
+	  $EV.status = CLOSED;
+    ntadd($EV,"Event closed due to existing Datastore Path event from same resource pool within past 180 seconds");
+	  $EXISTING.msg = "VCenter - " || $EXISTING.mc_host || " reported multiple Datastore Path alerts for " || $EXISTING.TrapData4;
+	  $EXISTING.mc_long_msg = $EXISTING.mc_long_msg || char(10) || "ADDITIONAL ALERT: " || $EV.TrapData3;
+	  ntadd($EXISTING,"Updated message due to duplicate Datastore Path events from same resource pool");
+  }
+END
+
+
+new datastore_path_correlation : NNM_EVENT($EV)
+#
+# WHEN
+#   SNMP trap for VCenter "Datastore Path " is received
+# AND
+#   The event was not closed by the rule above
+# THEN
+#   Modify the alert to be stateful. Change "do_ticket" to "NO" so that a ticket
+#   is not created immediately.  Start a timer to wait 3 minutes before cutting a ticket.
+#   NOTE: This will allow event to be updated to reflect multiple paths down if more events arrive before timer pop
+#
+  where [(
+    $EV.mc_tool == "HPOV"
+	AND $EV.status != CLOSED
+	AND $EV.TrapData1 == "VCenter"
+	AND $EV.TrapData2 == "Datastore Usage"
+	AND match_regex($EV.TrapData3,'.*Datastore Path$','i')
+  )]
+  triggers {
+	$EV.stateful = YES;
+    $EV.do_ticket = NO;
+    set_timer($EV,180,'datastore_path_correlation_timer');
+    ntadd($EV,"Timer initiated at " || time_stamp_to_str(time_stamp(),'%c'));
+  }
+END
+
+
+timer datastore_path_correlation_timer_pop: NNM_EVENT($EV)
+#
+# WHEN
+#   The correlation_timer set in rule above expires
+# AND
+#   The event is still open
+# AND
+# THEN
+#   Open a ticket for the event
+# NOTE: 
+#
+  where [
+    $EV.mc_tool == "HPOV"
+    AND $EV.stateful == YES
+	  AND $EV.status != CLOSED
+    AND $EV.status != BLACKOUT
+	  AND $EV.TrapData1 == "VCenter"
+	  AND $EV.TrapData2 == "Datastore Usage"
+	  AND match_regex($EV.TrapData3,'.*Datastore Path$','i')
+  ]
+  timer_info : == 'datastore_path_correlation_timer'
+  {
+    $EV.do_ticket = YES;
+	  ntadd($EV,"Event released for incident creation due to timer expiration");
+  }
+END
