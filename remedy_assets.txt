@@ -1,5 +1,20 @@
 -- author: Mike McGrail
 -- sample SQL query to retrieve servers from Remedy CMDB
+-- AssetLifecycleStatus meanings:
+--0 = Ordered 
+--1 = Received 
+--2 = Being Assembled 
+--3 = Deployed 
+--4 - In Repair 
+--5 = Down 
+--6 = End of Life 
+--7 = Transferred 
+--8 = Delete 
+--9 = In Inventory 
+--10 = On Loan 
+--11 = Disposed 
+--12 = Reserved 
+--13 = Return to Vendor 
 
 SELECT BCS.Name ,
          BCS.HostName ,
