@@ -1,0 +1,14 @@
+-- author: Mike McGrail
+-- sample SQL query to retrieve installed software on servers from Remedy CMDB
+
+SELECT BCS.Name ,
+         BCS.HostName as itsi_host,
+         BCS.Domain ,
+         BCS.Company ,
+         BCP.Name AS Software
+FROM [ARSystem].[dbo].[BMC_CORE_BMC_ComputerSystem] BCS
+INNER JOIN [ARSystem].[dbo].[BMC_CORE_BMC_Product] BCP
+    ON BCS.InstanceId = BCP.RelLeadInstanceId
+WHERE ( BCS.Item = 'Server'
+        AND BCS.DatasetId = 'BMC.ASSET' )
+ORDER BY  BCS.InstanceID ASC
