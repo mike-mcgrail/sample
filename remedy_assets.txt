@@ -1,0 +1,31 @@
+-- author: Mike McGrail
+-- sample SQL query to retrieve servers from Remedy CMDB
+
+SELECT BCS.Name ,
+         BCS.HostName ,
+         BCS.Company ,
+         BCS.Domain ,
+         BCS.SystemEnvironment ,
+         BCS.SerialNumber ,
+         BCS.ICOFR ,
+         BCS.isVirtual ,
+         BCS.Site ,
+         BCS.Item_Type ,
+         BOS.Name AS OS ,
+         BIP.Name AS IP ,
+         AAT.AssetLifecycleStatus ,
+         AAP.Full_Name AS Support_Group
+FROM [ARSystem].[dbo].[BMC_CORE_BMC_ComputerSystem] BCS
+LEFT JOIN [ARSystem].[dbo].[BMC_CORE_BMC_OperatingSystem] BOS
+    ON BCS.InstanceId = BOS.RelLeadInstanceId
+LEFT JOIN [ARSystem].[dbo].[BMC_CORE_BMC_IPEndPoint] BIP
+    ON (BCS.InstanceId = BIP.RelLeadInstanceId
+        AND BIP.ManagementAddress = 1)
+LEFT JOIN [ARSystem].[dbo].[AST_Attributes] AAT
+    ON (BCS.ReconciliationIdentity = AAT.ReconciliationIdentity)
+LEFT JOIN [ARSystem].[dbo].[AST_AssetPeople] AAP
+    ON (BCS.Name = AAP.Asset_ID_
+        AND AAP.Form_Type = 'Support Group')
+WHERE ( BCS.Item = 'Server'
+        AND BCS.DatasetId = 'BMC.ASSET' )
+ORDER BY  BCS.InstanceID ASC
