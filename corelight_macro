@@ -1,0 +1,2 @@
+[corelight_overview_timechart_bro]
+definition = `corelight_evt_metric_bro` | rename logs.*_export.lag AS export_* | timechart avg(cpu) as cpu avg(export_*) as export_* avg(logs.*.entries.per-second) as "logs_*" avg(files.*) as files_*
